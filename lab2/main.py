@@ -3,6 +3,10 @@ import matplotlib.pyplot as plt
 import time
 import os
 import glob
+import warnings
+warnings.simplefilter(action='ignore', category=pd.errors.SettingWithCopyWarning)
+warnings.simplefilter(action='ignore', category=UserWarning)
+
 def loadData(path: str) -> pd.DataFrame:
     try:
         data = pd.read_excel(path)
@@ -20,6 +24,7 @@ def plotGraphicsBasicaly(data: pd.DataFrame) -> None:
     time_finish = time.time() - time_start
     axes[0].set_title(f'Типы утечек -> {time_finish:.4f} с',fontsize=14, fontweight='bold')
     axes[0].tick_params(axis='x', rotation=90)
+    axes[0].set_ylabel('Число инцендентов, ед.')
     time_start = time.time()
     entity_counts = data['Covered Entity Type'].value_counts()
     patches,text,autotext = axes[1].pie(entity_counts.values,labels=entity_counts.index,autopct='%1.1f%%')
@@ -35,7 +40,7 @@ def plotGraphicsBasicaly(data: pd.DataFrame) -> None:
     axes[2].plot(timeline['Breach Submission Date'], timeline[0],marker='o', linewidth=2, markersize=4, color='red')
     axes[2].set_title(f'Утечки от времени -> {time_finish:.4f} c',fontsize=14, fontweight='bold')
     axes[2].set_xlabel('Дата', fontsize=12)
-    axes[2].set_ylabel('Количество утечек в месяц', fontsize=12)
+    axes[2].set_ylabel('Количество утечек в месяц, ед.', fontsize=12)
     axes[2].tick_params(axis='x', rotation=45)
     axes[2].grid(True, alpha=0.3)
     plt.tight_layout()
@@ -61,54 +66,72 @@ def plotGraphicsAdvanced(full_data: pd.DataFrame, target_entity: str = 'Healthca
         print("Секционированные данные не найдены. Создаем заново...")
         dataSectionalizationType(full_data, partition_path)
         partitions = loadSectionalizedData(partition_path)
-    fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(18, 5))
+    fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(16, 9), constrained_layout=True)
+    fig.set_constrained_layout_pads(w_pad=0.02, h_pad=0.02)
+    fig.subplots_adjust(bottom=0.2)
     safe_name = target_entity.replace(' ','_')
     currentData = partitions[f'entity_{safe_name}']
-    time_start = time.time()
-    if currentData['Breach Submission Date'].dtype == 'object':
-        currentData['Breach Submission Date'] = pd.to_datetime(currentData['Breach Submission Date'])
-    timeline = currentData.groupby(currentData['Breach Submission Date'].dt.to_period('M')).size()
-    timeline = timeline.reset_index()
-    timeline['Breach Submission Date'] = timeline['Breach Submission Date'].dt.to_timestamp()
+    x = 0
+    for _ in range(100):
+        time_start = time.time()
+        if currentData['Breach Submission Date'].dtype == 'object':
+            currentData['Breach Submission Date'] = pd.to_datetime(currentData['Breach Submission Date'])
+        timeline = currentData.groupby(currentData['Breach Submission Date'].dt.to_period('M')).size()
+        timeline = timeline.reset_index()
+        timeline['Breach Submission Date'] = timeline['Breach Submission Date'].dt.to_timestamp()
+        time_finish = time.time() - time_start
+        x += time_finish
     axes[0][0].plot(timeline['Breach Submission Date'], timeline[0], marker='o', linewidth=2, markersize=4, color='red')
     axes[0][0].set_xlabel('Дата', fontsize=12)
-    axes[0][0].set_ylabel('Количество утечек в месяц', fontsize=12)
-    axes[0][0].tick_params(axis='x', rotation=45)
+    axes[0][0].set_ylabel('Количество утечек в месяц, ед.', fontsize=12)
+    axes[0][0].tick_params(axis='x', rotation=45, labelsize=8)
     axes[0][0].grid(True, alpha=0.3)
-    time_finish = time.time() - time_start
-    axes[0][0].set_title(f'Утечки от времени (sect)-> {time_finish:.5f} c', fontsize=14, fontweight='bold')
+    axes[0][0].set_title(f'Утечки от времени (sectionalized)-> {x/100:.5f} c', fontsize=14, fontweight='bold')
     currentData = full_data
-    time_start = time.time()
-    currentData = currentData[currentData['Covered Entity Type'] == target_entity]
-    if currentData['Breach Submission Date'].dtype == 'object':
-        currentData['Breach Submission Date'] = pd.to_datetime(currentData['Breach Submission Date'])
-    timeline = currentData.groupby(currentData['Breach Submission Date'].dt.to_period('M')).size()
-    timeline = timeline.reset_index()
+    x = 0;
+    for _ in range(100):
+        time_start = time.time()
+        #currentData = currentData[currentData['Covered Entity Type'] == target_entity]
+        currentData = currentData.query(f'`Covered Entity Type` == @target_entity')
+        if currentData['Breach Submission Date'].dtype == 'object':
+            currentData['Breach Submission Date'] = pd.to_datetime(currentData['Breach Submission Date'])
+        timeline = currentData.groupby(currentData['Breach Submission Date'].dt.to_period('M')).size()
+        timeline = timeline.reset_index()
+        time_finish = time.time() - time_start
+        x += time_finish
+
     timeline['Breach Submission Date'] = timeline['Breach Submission Date'].dt.to_timestamp()
     axes[1][0].plot(timeline['Breach Submission Date'], timeline[0], marker='o', linewidth=2, markersize=4, color='red')
     axes[1][0].set_xlabel('Дата', fontsize=12)
-    axes[1][0].set_ylabel('Количество утечек в месяц', fontsize=12)
-    axes[1][0].tick_params(axis='x', rotation=45)
+    axes[1][0].set_ylabel('Количество утечек в месяц, ед.', fontsize=12)
+    axes[1][0].tick_params(axis='x', rotation=45, labelsize=8)
     axes[1][0].grid(True, alpha=0.3)
-    time_finish = time.time() - time_start
-    axes[1][0].set_title(f'Утечки от времени (full base)-> {time_finish:.5f} c', fontsize=14, fontweight='bold')
+    axes[1][0].set_title(f'Утечки от времени (full database)-> {x/100:.5f} c', fontsize=14, fontweight='bold')
     currentData = partitions[f'entity_{safe_name}']
-    time_start = time.time()
-    breach_counts = currentData['Type of Breach'].value_counts()
+    x = 0
+    for _ in range(100):
+        time_start = time.time()
+        breach_counts = currentData['Type of Breach'].value_counts()
+        time_finish = time.time() - time_start
+        x += time_finish
     axes[0][1].bar(breach_counts.index, breach_counts.values)
     axes[0][1].grid(axis='y', alpha=0.3)
-    time_finish = time.time() - time_start
-    axes[0][1].set_title(f'Типы утечек (sect) -> {time_finish:.5f} с', fontsize=14, fontweight='bold')
-    axes[0][1].tick_params(axis='x', rotation=90)
+    axes[0][1].set_title(f'Типы утечек (sect) -> {x/100:.5f} с', fontsize=14, fontweight='bold')
+    axes[0][1].tick_params(axis='x', rotation=45, labelsize=8)
     currentData = full_data
-    time_start = time.time()
-    currentData = currentData[currentData['Covered Entity Type'] == target_entity]
-    breach_counts = currentData['Type of Breach'].value_counts()
+    x = 0
+    for _ in range(100):
+        time_start = time.time()
+        currentData = currentData[currentData['Covered Entity Type'] == target_entity]
+        breach_counts = currentData['Type of Breach'].value_counts()
+        time_finish = time.time() - time_start
+        x += time_finish
     axes[1][1].bar(breach_counts.index, breach_counts.values)
     axes[1][1].grid(axis='y', alpha=0.3)
-    axes[1][1].tick_params(axis='x', rotation=90)
-    time_finish = time.time() - time_start
-    axes[1][1].set_title(f'Типы утечек (full base) -> {time_finish:.5f} с', fontsize=14, fontweight='bold')
+    axes[0][1].set_ylabel('Число инцендентов, ед.')
+    axes[1][1].set_ylabel('Число инцендентов, ед.')
+    axes[1][1].tick_params(axis='x', rotation=45, labelsize=8)
+    axes[1][1].set_title(f'Типы утечек (full database) -> {x/100:.5f} с', fontsize=14, fontweight='bold')
 
 
     plt.show()
@@ -139,5 +162,5 @@ def loadSectionalizedData(path: str = './Sectionalizationed/type') -> dict:
 if __name__ == '__main__':
     Data = loadData("Утечки мед данных.xls")
     plotGraphicsBasicaly(Data)
-    #dataSectionalizationType(Data)
-    #plotGraphicsAdvanced(Data)
+    dataSectionalizationType(Data)
+    plotGraphicsAdvanced(Data)
