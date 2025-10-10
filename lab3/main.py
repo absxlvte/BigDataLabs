@@ -118,6 +118,15 @@ def findTuplesAdvanced(conditions: dict = {}, limit: int=None):
                 if limit is not None:
                     query += " LIMIT %s"
                     params.append(limit)
+                debug_query = query
+                for param in params:
+                    if isinstance(param, str):
+                        debug_query = debug_query.replace('%s', f"'{param}'", 1)
+                    elif param is None:
+                        debug_query = debug_query.replace('%s', 'NULL', 1)
+                    else:
+                        debug_query = debug_query.replace('%s', str(param), 1)
+                print(f"SQL: {debug_query}")
                 cur.execute(query, params)
             columns = [desc[0] for desc in cur.description]
             data = cur.fetchall()
@@ -250,6 +259,18 @@ def getAggregatedStats(aggregation_type: str, column: str = None, conditions: di
                             params.extend(value)
             if where_conditions:
                 query += " WHERE " + " AND ".join(where_conditions)
+            debug_query = query
+            for param in params:
+                if isinstance(param, str):
+                    debug_query = debug_query.replace('%s', f"'{param}'", 1)
+                elif isinstance(param, list):
+                    param_str = ', '.join([f"'{p}'" if isinstance(p, str) else str(p) for p in param])
+                    debug_query = debug_query.replace('%s', param_str, len(param))
+                elif param is None:
+                    debug_query = debug_query.replace('%s', 'NULL', 1)
+                else:
+                    debug_query = debug_query.replace('%s', str(param), 1)
+            print(f"SQL: {debug_query}")
             cur.execute(query, params)
             data = cur.fetchall()
             columns = [desc[0] for desc in cur.description]
@@ -278,7 +299,6 @@ WHERE "name_of_covered_entity" LIKE 'Grand Lake Hospital'
 #-1: total_count of tuples
 #-2: number of incidents ordered by type of organization
 
-"""var = -2
+"""var = 2
 df = showExamples(var)
-print(df.to_string(index=False))
-"""
+print(df.to_string(index=False))"""
