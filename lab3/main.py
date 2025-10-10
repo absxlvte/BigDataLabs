@@ -5,7 +5,7 @@ def createDataLeakTable():
     with psycopg2.connect("host=82.148.28.116 user=student password=Wd9hVzfB dbname=student") as conn:
         with conn.cursor() as cur:
             cur.execute(
-                """CREATE TABLE IF NOT EXISTS medicalDataBreachesTable_st5 (
+                """CREATE TABLE IF NOT EXISTS medical_data_breaches_table_st5 (
                     name_of_covered_entity TEXT,
                     state TEXT,
                     covered_entity_type TEXT,
@@ -20,13 +20,13 @@ def createDataLeakTable():
             output = StringIO()
             df.to_csv(output,sep='\t',header=False,index=False)
             output.seek(0)
-            cur.copy_from(output,'medicaldatabreachestable_st5', null="")
+            cur.copy_from(output,'medical_data_breaches_table_st5', null="")
 
 def dropDataLeakTable():
     with psycopg2.connect("host=82.148.28.116 user=student password=Wd9hVzfB dbname=student") as conn:
         with conn.cursor() as cur:
             cur.execute(
-                """DROP TABLE medicaldatabreachestable_st5"""
+                """DROP TABLE medical_data_breaches_table_st5"""
             )
 
 def addTuple(name_of_covered_entity : str=None,
@@ -43,7 +43,7 @@ def addTuple(name_of_covered_entity : str=None,
             cur.execute(
                 """
                 INSERT INTO 
-                    medicaldatabreachestable_st5 
+                    medical_data_breaches_table_st5 
                 VALUES
                     (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
@@ -76,7 +76,7 @@ def findTuplesAdvanced(conditions: dict = {}, limit: int=None):
     with psycopg2.connect("host=82.148.28.116 user=student password=Wd9hVzfB dbname=student") as conn:
         with conn.cursor() as cur:
             if not conditions:
-                cur.execute("SELECT * FROM medicaldatabreachestable_st5")
+                cur.execute("SELECT * FROM medical_data_breaches_table_st5")
             else:
                 where_conditions = []
                 params = []
@@ -112,7 +112,7 @@ def findTuplesAdvanced(conditions: dict = {}, limit: int=None):
                             where_conditions.append(f"{column} IS NULL")
                         elif operator == 'IS NOT NULL':
                             where_conditions.append(f"{column} IS NOT NULL")
-                query = "SELECT * FROM medicaldatabreachestable_st5"
+                query = "SELECT * FROM medical_data_breaches_table_st5"
                 if where_conditions:
                     query += " WHERE " + " AND ".join(where_conditions)
                 if limit is not None:
@@ -124,7 +124,7 @@ def findTuplesAdvanced(conditions: dict = {}, limit: int=None):
             df = pd.DataFrame(data, columns=columns)
             return df
 
-def showExamples(num: int = 0, limit: int=10):
+def showExamples(num: int = 0, limit: int=None):
     match num:
         case 0:
             print("state = VA\n")
@@ -157,7 +157,7 @@ def showExamples(num: int = 0, limit: int=10):
             }, limit=limit)
             return df
         case 5:
-            print("covered_entity_type != Health\n")
+            print("covered_entity_type != Health Plan\n")
             df = findTuplesAdvanced({
                 "covered_entity_type": ("!=", "Health Plan")
             }, limit=limit)
@@ -189,16 +189,16 @@ def showExamples(num: int = 0, limit: int=10):
 
 def getAggregatedStats(aggregation_type: str, column: str = None, conditions: dict = None):
     SAFE_QUERIES = {
-        'count': "SELECT COUNT(*) as total_count FROM medicaldatabreachestable_st5",
-        'sum_affected': "SELECT SUM(individuals_affected) as total_sum FROM medicaldatabreachestable_st5",
-        'avg_affected': "SELECT AVG(individuals_affected) as average_value FROM medicaldatabreachestable_st5",
-        'min_affected': "SELECT MIN(individuals_affected) as min_value FROM medicaldatabreachestable_st5",
-        'max_affected': "SELECT MAX(individuals_affected) as max_value FROM medicaldatabreachestable_st5",
-        'group_by_state': "SELECT state, COUNT(*) as count FROM medicaldatabreachestable_st5 GROUP BY state ORDER BY count DESC",
-        'group_by_entity': "SELECT covered_entity_type, COUNT(*) as count FROM medicaldatabreachestable_st5 GROUP BY covered_entity_type ORDER BY count DESC",
-        'group_by_breach': "SELECT type_of_breach, COUNT(*) as count FROM medicaldatabreachestable_st5 GROUP BY type_of_breach ORDER BY count DESC",
-        'group_by_location': "SELECT location_of_breached_information, COUNT(*) as count FROM medicaldatabreachestable_st5 GROUP BY location_of_breached_information ORDER BY count DESC",
-        'group_by_associate': "SELECT business_associate_present, COUNT(*) as count FROM medicaldatabreachestable_st5 GROUP BY business_associate_present ORDER BY count DESC"
+        'count': "SELECT COUNT(*) as total_count FROM medical_data_breaches_table_st5",
+        'sum_affected': "SELECT SUM(individuals_affected) as total_sum FROM medical_data_breaches_table_st5",
+        'avg_affected': "SELECT AVG(individuals_affected) as average_value FROM medical_data_breaches_table_st5",
+        'min_affected': "SELECT MIN(individuals_affected) as min_value FROM medical_data_breaches_table_st5",
+        'max_affected': "SELECT MAX(individuals_affected) as max_value FROM medical_data_breaches_table_st5",
+        'group_by_state': "SELECT state, COUNT(*) as count FROM medical_data_breaches_table_st5 GROUP BY state ORDER BY count DESC",
+        'group_by_entity': "SELECT covered_entity_type, COUNT(*) as count FROM medical_data_breaches_table_st5 GROUP BY covered_entity_type ORDER BY count DESC",
+        'group_by_breach': "SELECT type_of_breach, COUNT(*) as count FROM medical_data_breaches_table_st5 GROUP BY type_of_breach ORDER BY count DESC",
+        'group_by_location': "SELECT location_of_breached_information, COUNT(*) as count FROM medical_data_breaches_table_st5 GROUP BY location_of_breached_information ORDER BY count DESC",
+        'group_by_associate': "SELECT business_associate_present, COUNT(*) as count FROM medical_data_breaches_table_st5 GROUP BY business_associate_present ORDER BY count DESC"
     }
     query_map = {
         'count': 'count',
@@ -261,21 +261,24 @@ def getAggregatedStats(aggregation_type: str, column: str = None, conditions: di
 #createDataLeakTable()
 
 #addTuple(name_of_covered_entity="Grand Lake Hospital",state="NY",breach_submission_date="2024-12-25",individuals_affected=100, web_description="www.rt.ru/post/10213")
-"""SELECT *
-FROM "medicaldatabreachestable_st5"
-WHERE "name_of_covered_entity" LIKE 'Grand Lake Hospital'"""
-
-"""  0: =
-     1: LIKE
-     2: > , <, >=, <=, !=
-     3: IN
-     4: BETWEEN
-     5: !=
-     6: IS NULL
-     7: complex
-    -1: total_count
-    -2: number of incidents by type of organization
 """
-"""var = 1
+SELECT *
+FROM "medical_data_breaches_table_st5"
+WHERE "name_of_covered_entity" LIKE 'Grand Lake Hospital'
+"""
+
+#0: =
+#1: LIKE
+#2: > , <, >=, <=, !=
+#3: IN
+#4: BETWEEN
+#5: !=
+#6: IS NOT NULL
+#7: complex
+#-1: total_count of tuples
+#-2: number of incidents ordered by type of organization
+
+"""var = -2
 df = showExamples(var)
-print(df.to_string(index=False))"""
+print(df.to_string(index=False))
+"""
