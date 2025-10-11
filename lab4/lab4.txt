@@ -1,0 +1,53 @@
+//one-to-one//
+
+CREATE TABLE IF NOT EXISTS st5_passengers(
+     id SERIAL PRIMARY KEY,
+     name TEXT
+);
+CREATE TABLE IF NOT EXISTS st5_tickets(
+     id INTEGER UNIQUE REFERENCES st5_passengers(id),
+     seat TEXT
+);
+
+//one-to-many//
+
+create table if not exists st5_countries(
+     id SERIAL PRIMARY KEY,
+     country_name TEXT
+);
+
+create table if not exists st5_cities(
+     id SERIAL PRIMARY KEY,
+     city_name TEXT,
+     country_id INTEGER REFERENCES st5_country(id)
+);
+
+//many-to-many//
+
+CREATE TABLE IF NOT EXISTS st5_authors(
+id SERIAL PRIMARY KEY,
+author_name TEXT
+);
+CREATE TABLE IF NOT EXISTS st5_books(
+id SERIAL PRIMARY KEY,
+book_name TEXT
+);
+CREATE TABLE IF NOT EXISTS st5_authors_books(
+book_id INTEGER NOT NULL,
+author_id INTEGER NOT NULL,
+FOREIGN KEY (book_id) REFERENCES st5_books(id),
+FOREIGN KEY (author_id) REFERENCES st5_authors(id)
+);
+
+SELECT "book_name" FROM st5_books 
+JOIN st5_authors_books ON st5_books."id"= st5_authors_books."book_id"
+JOIN st5_authors ON st5_authors."id"= st5_authors_books."author_id"
+WHERE st5_authors."author_name" LIKE 'smth'
+
+
+
+
+
+drop table st5_authors;drop table st5_authors_books;drop table st5_books;
+drop table st5_city;drop table st5_country;drop table st5_passengers;
+drop table st5_tickets;
