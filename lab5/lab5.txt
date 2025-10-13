@@ -1,0 +1,35 @@
+
+-- 1st Variat (not good)
+SELECT staff.name, SUM(prices.price) as total_income
+FROM patients_procedures
+FULL OUTER JOIN procedures ON procedures.id = patients_procedures.procedure_id
+FULL OUTER JOIN prices ON procedures.name = prices.name
+FULL OUTER JOIN doctors ON doctors.id = patients_procedures.doctor_id
+FULL OUTER JOIN employee ON doctors.id = employee.doctor_id
+FULL OUTER JOIN staff ON staff.id = employee.staff_id
+GROUP BY staff.name
+ORDER BY total_income DESC
+LIMIT 1;
+
+-- 2nd Variant (better than 1st)
+SELECT staff.name, SUM(prices.price) as total_income
+FROM patients_procedures
+FULL OUTER JOIN procedures ON procedures.id = patients_procedures.procedure_id
+FULL OUTER JOIN prices ON procedures.name = prices.name
+FULL OUTER JOIN doctors ON doctors.id = patients_procedures.doctor_id
+FULL OUTER JOIN employee ON doctors.id = employee.doctor_id
+FULL OUTER JOIN staff ON staff.id = employee.staff_id
+GROUP BY staff.name
+HAVING SUM(prices.price) = (
+    SELECT MAX(income) 
+    FROM (
+        SELECT SUM(prices.price) as income
+        FROM patients_procedures
+        FULL OUTER JOIN procedures ON procedures.id = patients_procedures.procedure_id
+        FULL OUTER JOIN prices ON procedures.name = prices.name
+        FULL OUTER JOIN doctors ON doctors.id = patients_procedures.doctor_id
+        FULL OUTER JOIN employee ON doctors.id = employee.doctor_id
+        FULL OUTER JOIN staff ON staff.id = employee.staff_id
+        GROUP BY staff.name
+    ) as incomes
+);
