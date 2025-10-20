@@ -26,13 +26,25 @@ class MongoLab:
             print(f"Ошибка при импорте: {e}")
             return None
     def show_first_n(self,n=100):
-        pass
+        print(f"Первые {n} записей")
+        result = self.collection.find().limit(n)
+        for item in result:
+            print(item)
     def show_paginated(self,total=100,page_size=20):
-        pass
+        print(f"Первые {total} записей, страницами по {page_size} записей")
+        for page_num in range(0, total, page_size):
+            result = self.collection.find().skip(page_num).limit(page_size)
+            print(f"Страница {page_num // page_size + 1}:")
+            for item in result:
+                print(item)
     def find_with_criteria(self, field,values,limit=100):
         pass
     def find_with_in(self,field,values,projection=None):
-        pass
+        if projection is None:
+            projection = {}
+        result = self.collection.find({field: {"$in": values}},projection)
+        for item in result:
+            print(item)
     def insert_record(self):
         pass
     def update_record(self):
