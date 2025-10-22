@@ -1,7 +1,6 @@
 import pymongo
 import pandas as pd
 
-
 class MongoLab:
     def __init__(self, db_name,collection_name):
         self.client = pymongo.MongoClient("mongodb://student:Wd9hVzfB@82.148.28.116:27080")
@@ -59,13 +58,15 @@ class MongoLab:
         self.client.close()
 
 def main():
-    """with MongoLab("st5_db","medical_data_leaks") as lab:
+    """with MongoLab("student","st5_medical_data_leaks") as lab:
         #result = lab.import_from_xls("Утечки мед данных.xls",limit=2)
         lab.collection.insert_one({'qwe':123})"""
-    """client = pymongo.MongoClient("mongodb://student:Wd9hVzfB@82.148.28.116:27080")
-    database = client["bigdata"]
+    client = pymongo.MongoClient("mongodb://student:Wd9hVzfB@82.148.28.116:27080")
+    database = client["student"]
     collection = database["patients"]
-    result = collection.insert_one({"name": "Ivan", "age": 21})
+    print(database.list_collection_names())
+
+    """result = collection.insert_one({"name": "Ivan", "age": 21})
     print(result)"""
 
 if __name__ == "__main__":
