@@ -6,6 +6,7 @@ import time
 from tqdm import tqdm
 from faker import Faker
 import bcrypt
+from io import StringIO
 import hashlib
 from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
@@ -41,7 +42,7 @@ class DataBase(ABC):
             "password" : hashlib.sha256(fake.password().encode('utf-8')).hexdigest(),
             "email" : fake.email(),
             "phone_number" : fake_num.phone_number(),
-            "is2FA" : random.choice([0,1])
+            "is2fa" : random.choice([0,1])
         }
 
 class PostgreTable(DataBase):
@@ -61,7 +62,7 @@ class PostgreTable(DataBase):
                         password TEXT,
                         email TEXT,
                         phone_number TEXT,
-                        is2FA BOOLEAN
+                        is2fa BOOLEAN
                     );
                 """)
         self.con.commit()
@@ -69,19 +70,19 @@ class PostgreTable(DataBase):
 
     def insert_users(self, count):
         with tqdm(total=count, desc="Подготовка данных") as pbar:
-            users = []
+            output = StringIO()
             for _ in range(count):
                 user = self.generate_user()
-                users.append((user["login"], user["password"], user["email"], user["phone_number"], bool(user["is2FA"])))
+                row = f"{user['login']}\t{user['password']}\t{user['email']}\t{user['phone_number']}\t{bool(user['is2fa'])}\n"
+                output.write(row)
                 pbar.update(1)
+        output.seek(0)
+        t0 = time.time()
         with tqdm(total=1, desc="Вставка в БД") as pbar:
-            self.cur.executemany("""
-                INSERT INTO st5_users (login, password, email, phone_number, is2FA)
-                VALUES (%s, %s, %s, %s, %s);
-            """, users)
+            self.cur.copy_from(output, 'st5_users', columns=('login', 'password', 'email', 'phone_number', 'is2fa'))
             self.con.commit()
             pbar.update(1)
-        print(f"PostgreSQL: вставлено {count} записей")
+        print(f"PostgreSQL: вставлено {count} записей за {time.time()-t0:.2f} с")
 
     def find_user(self, login):
         t0 = time.time()
@@ -165,6 +166,7 @@ class MongoCollection(DataBase):
 
 def benchmark_postgres_search():
     with PostgreTable("host=82.148.28.116 user=student password=Wd9hVzfB dbname=student") as pg:
+        pg.delete_indexes()
         pg.cur.execute("SELECT login FROM st5_users OFFSET floor(random() * (SELECT COUNT(*) FROM st5_users)) LIMIT 1;")
         login = pg.cur.fetchone()[0]
         print(f"\nТестируем поиск по логину: '{login}'\n")
@@ -173,7 +175,7 @@ def benchmark_postgres_search():
         for _ in range(5):
             t0 = time.time()
             pg.cur.execute("SELECT * FROM st5_users WHERE login = %s;", (login,))
-            pg.cur.fetchone()
+            pg.cur.fetchall()
             times_no_index.append(time.time() - t0)
         avg_no_index = sum(times_no_index) / len(times_no_index)
         print("\nEXPLAIN (без индекса):")
@@ -185,7 +187,7 @@ def benchmark_postgres_search():
         for _ in range(5):
             t0 = time.time()
             pg.cur.execute("SELECT * FROM st5_users WHERE login = %s;", (login,))
-            pg.cur.fetchone()
+            pg.cur.fetchall()
             times_with_index.append(time.time() - t0)
         avg_with_index = sum(times_with_index) / len(times_with_index)
         print("\nEXPLAIN (с индексом):")
@@ -205,17 +207,17 @@ def benchmark_postgres_search():
 
 def benchmark_mongo_search():
     with MongoCollection("mongodb://student:Wd9hVzfB@82.148.28.116:27080", "students", "st5_users") as mn:
-        sample = mn.collection.aggregate([{"$sample": { "size": 1 }}])
-        login = next(sample)["login"]
-        print(f"\nТестируем поиск по логину: '{login}'\n")
         try:
             mn.delete_indexes()
         except Exception:
             pass
+        sample = mn.collection.aggregate([{"$sample": { "size": 1 }}])
+        login = next(sample)["login"]
+        print(f"\nТестируем поиск по логину: '{login}'\n")
         times_no_index = []
         for _ in range(5):
             t0 = time.time()
-            mn.collection.find_one({"login": login})
+            list(mn.collection.find({"login": login}))
             times_no_index.append(time.time() - t0)
         avg_no_index = sum(times_no_index) / len(times_no_index)
         explain_no_index = mn.collection.find({"login": login}).explain()
@@ -225,7 +227,7 @@ def benchmark_mongo_search():
         times_with_index = []
         for _ in range(5):
             t0 = time.time()
-            mn.collection.find_one({"login": login})
+            list(mn.collection.find({"login": login}))
             times_with_index.append(time.time() - t0)
         avg_with_index = sum(times_with_index) / len(times_with_index)
         explain_with_index = mn.collection.find({"login": login}).explain()
@@ -245,7 +247,7 @@ def benchmark_mongo_search():
 if __name__ == "__main__":
     with PostgreTable("host=82.148.28.116 user=student password=Wd9hVzfB dbname=student") as pg:
         #pg.create_table()
-        #pg.insert_users(1000)
+        #pg.insert_users(1000000)
         #pg.drop_table()
         #pg.find_user("accept")
         #pg.create_indexes()
