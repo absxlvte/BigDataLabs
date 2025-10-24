@@ -3,9 +3,6 @@ class MongoLab:
     def __init__(self, uri, db_name):
         self.client = pymongo.MongoClient(uri)
         self.db = self.client[db_name]
-        self.collection = None
-    def setCollection(self,collection):
-        self.collection = collection
     def close(self):
         self.client.close()
     def __enter__(self):
