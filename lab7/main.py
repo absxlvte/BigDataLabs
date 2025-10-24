@@ -12,10 +12,10 @@ class MongoLab:
 
 def main():
     with MongoLab("mongodb://student:Wd9hVzfB@82.148.28.116:27080","users") as lab:
-        lab.db["equipments_used_by_doctors"].drop()
+        lab.db["st5_equipments_used_by_doctors"].drop()
         lab.db.command(
             {
-                "create":"equipments_used_by_doctors",
+                "create":"st5_equipments_used_by_doctors",
                 "viewOn":"stage_doctors",
                 "pipeline":[
                     {
@@ -74,10 +74,11 @@ def main():
                 ]
             }
         )
-        if lab.db["equipments_used_by_doctors"].find():
+        if lab.db["st5_equipments_used_by_doctors"].find():
             print("ok")
         else:
             print("bad")
 
 if __name__ == "__main__":
     main()
+

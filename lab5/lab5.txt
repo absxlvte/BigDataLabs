@@ -7,7 +7,7 @@ FULL OUTER JOIN prices ON procedures.name = prices.name
 FULL OUTER JOIN doctors ON doctors.id = patients_procedures.doctor_id
 FULL OUTER JOIN employee ON doctors.id = employee.doctor_id
 FULL OUTER JOIN staff ON staff.id = employee.staff_id
-GROUP BY staff.name
+GROUP BY staff.id
 ORDER BY total_income DESC
 LIMIT 1;
 
@@ -19,7 +19,7 @@ FULL OUTER JOIN prices ON procedures.name = prices.name
 FULL OUTER JOIN doctors ON doctors.id = patients_procedures.doctor_id
 FULL OUTER JOIN employee ON doctors.id = employee.doctor_id
 FULL OUTER JOIN staff ON staff.id = employee.staff_id
-GROUP BY staff.name
+GROUP BY staff.id
 HAVING SUM(prices.price) = (
     SELECT MAX(income) 
     FROM (
@@ -30,6 +30,6 @@ HAVING SUM(prices.price) = (
         FULL OUTER JOIN doctors ON doctors.id = patients_procedures.doctor_id
         FULL OUTER JOIN employee ON doctors.id = employee.doctor_id
         FULL OUTER JOIN staff ON staff.id = employee.staff_id
-        GROUP BY staff.name
+        GROUP BY staff.id
     ) as incomes
 );
