@@ -139,10 +139,11 @@ class MongoCollection(DataBase):
                 user = self.generate_user()
                 users.append(user)
                 pbar.update(1)
+        t0 = time.time()
         with tqdm(total=1, desc="Вставка в БД") as pbar:
-            self.collection.insert_many(users)
+            self.collection.insert_many(users, ordered=False)
             pbar.update(1)
-        print(f"MongoDB: вставлено {count} записей")
+        print(f"MongoDB: вставлено {count} записей за {time.time()-t0:.2f} с")
     def find_user(self,login):
         t0 = time.time()
         result = self.collection.find_one({"login": login})
@@ -247,7 +248,7 @@ def benchmark_mongo_search():
 if __name__ == "__main__":
     with PostgreTable("host=82.148.28.116 user=student password=Wd9hVzfB dbname=student") as pg:
         #pg.create_table()
-        #pg.insert_users(1000000)
+        #pg.insert_users(10000000)
         #pg.drop_table()
         #pg.find_user("accept")
         #pg.create_indexes()
@@ -255,10 +256,10 @@ if __name__ == "__main__":
 
     with MongoCollection("mongodb://student:Wd9hVzfB@82.148.28.116:27080","students","st5_users") as mn:
         #mn.drop_table()
-        #mn.insert_users(1000000)
+        #mn.insert_users(10000000)
         #mn.create_indexes()
         #mn.find_user("professor")
         #mn.delete_indexes()
         pass
     #benchmark_postgres_search()
-    #benchmark_mongo_search()
+    benchmark_mongo_search()
